@@ -16,6 +16,7 @@ def read_track(file_name):
                 continue
             timestamp_str, command = line.strip().split(',')
             timestamp = datetime.strptime(timestamp_str, '%H:%M:%S.%f')
+            timestamp -= timedelta(seconds=0.3)
             commands.append((timestamp, command))
     return commands
 
@@ -34,17 +35,19 @@ def execute_commands(commands, ip, port):
         # Find the command that is just before the current synchronized time
         for i in range(len(commands)):
             if commands[i][0] > sync_time:
-                last_command = commands[i][1]
+                last_command = commands[i-1][1]
                 break
             else:
                 last_command = None
 
         if last_command is not None:
-            send_udp_command(last_command, ip, port)
-            print(f'{sync_time.time()} - {last_command}')
+            if last_command == "HIGH":
+                send_udp_command("on", ip, port)
+            elif last_command == "LOW":
+                send_udp_command("off", ip, port)
             last_command = None
         
-        time.sleep(0.25)
+        time.sleep(0.2)
 
     if 0 == 0:
         # sync_time = synchronize_timer()
@@ -78,7 +81,7 @@ def execute_commands(commands, ip, port):
         pass
 
 def main():
-    file_name = 'Aquaman2018.txt'
+    file_name = 'umbrella_water.txt'
     file_path = "C:\\Users\\adaxk\\Documents\\Ada\\Python\\4D Theater\\"
     commands = read_track(file_path+file_name)
 
@@ -86,7 +89,7 @@ def main():
     esp32_port = 12345
 
     while True:
-        userInput = input("Enter command (toggle, on, off, start, HIGH, LOW): ").lower()
+        userInput = input("Enter command (toggle, on, off, start): ").lower()
         if userInput in ["toggle", "on", "off"]:
             send_udp_command(userInput, esp32_ip, esp32_port)
         elif userInput == "start":
